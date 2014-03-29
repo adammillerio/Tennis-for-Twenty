@@ -1,0 +1,16 @@
+#game-div {
+  width: 1280px;
+  height: 720px;
+  margin: auto;
+  margin-top: 20px;
+  border:32px solid;
+  border-radius:25px;
+  border-color: #4A4A48;
+}
+
+#title {
+    text-align: center;
+}
+
+body {
+    background-image:url('back.jpg');
