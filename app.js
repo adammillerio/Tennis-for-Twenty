@@ -102,6 +102,8 @@ io.sockets.on('connection', function(client) {
         console.log(':: socket.io :: client disconnected with UUID' + client.userid);
         player1UUID = undefined;
         player2UUID = undefined;
+        paddle1Position = screenHeight / 2;
+        paddle2Position = screenHeight / 2;
         io.sockets.emit('playerdisconnected');
       });
 

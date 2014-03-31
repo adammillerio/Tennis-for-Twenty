@@ -17,6 +17,8 @@ var player2Connected = false;
 
 var scoreText;
 
+var curState;
+
 var wKey;
 var sKey;
 var upKey;
@@ -35,6 +37,7 @@ function create() {
     game.state.add('game', gameState);
 
     console.log('Starting lobby state');
+    curState = 'lobby';
     game.state.start('lobby');
 }
 
@@ -76,6 +79,18 @@ lobbyState.prototype = {
         paddle1 = game.add.sprite(15, game.world.centerY, 'paddle1');
         paddle2 = game.add.sprite(game.width - 30, game.world.centerY, 'paddle2');
 
+        game.physics.enable(paddle1, Phaser.Physics.ARCADE);
+        game.physics.enable(paddle2, Phaser.Physics.ARCADE);
+
+        paddle1.collideWorldBounds = true;
+        paddle2.collideWorldBounds = true;
+
+        paddle1.body.bounce.set(1);
+        paddle2.body.bounce.set(1);
+
+        paddle1.body.immovable = true;
+        paddle2.body.immovable = true;
+
         //socket.emit('init', {sHeight: game.height, pSize: paddle1.size});
 
         paddle1.visible = false;
@@ -83,7 +98,16 @@ lobbyState.prototype = {
     },
 
     update: function() {
+        paddle1.body.y = player1Position;
+        paddle2.body.y = player2Position;
+
+        game.physics.arcade.collide(spinners, paddle1, null, null, this);
+        game.physics.arcade.collide(spinners, paddle2, null, null, this);
+
         if(player1Connected == true && player2Connected == true) {
+            player1Position = 0;
+            player2Position = 0;
+            curState = 'game';
             game.state.start('game');
         }
     }
@@ -262,5 +286,9 @@ socket.on('playerdisconnected', function() {
     player2Connected = false;
     paddle1Score = 0;
     paddle2Score = 0;
-    game.state.start('lobby');
+
+    if(curState != 'lobby') {
+        curState = 'lobby';
+        game.state.start('lobby');
+    }
 });
