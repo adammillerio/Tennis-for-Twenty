@@ -57,48 +57,26 @@ lobbyState.prototype = {
     create: function() {
         game.physics.startSystem(Phaser.Physics.ARCADE);
 
-	spinners = game.add.group();
+        spinners = game.add.group();
 
-	for(var i=0; i < 8; i++) {
-		var spinner = spinners.create(game.world.centerX, game.world.centerY, 'spinner');
-		spinner.animations.add('spin');
-		spinner.animations.play('spin', 15, true);
-		spinner.checkWorldBounds = true;
-		game.physics.enable(spinner, Phaser.Physics.ARCADE);
-		spinner.body.collideWorldBounds = true;
-		spinner.body.bounce.set(1);
-		spinner.body.velocity.y = Math.floor((Math.random() * -300) + 300);
-		spinner.body.velocity.x = Math.floor((Math.random() * -300) + 300);
-	}        
-
-	/*
-	spinner1 = game.add.sprite(game.world.centerX, game.world.centerY, 'spinner');
-        spinner1.animations.add('spin');
-        spinner1.animations.play('spin', 15, true);
-
-        spinner1.checkWorldBounds = true;
-        game.physics.enable(spinner1, Phaser.Physics.ARCADE);
-        spinner1.body.collideWorldBounds = true;
-        spinner1.body.bounce.set(1);
-        spinner1.body.velocity.y = -37.5;
-        spinner1.body.velocity.x = -150;
-
-        spinner2 = game.add.sprite(game.world.centerX, game.world.centerY, 'spinner');
-        spinner2.animations.add('spin');
-        spinner2.animations.play('spin', 15, true);
-
-        spinner2.checkWorldBounds = true;
-        game.physics.enable(spinner2, Phaser.Physics.ARCADE);
-        spinner2.body.collideWorldBounds = true;
-        spinner2.body.bounce.set(1);
-        spinner2.body.velocity.y = 37.5;
-        spinner2.body.velocity.x = 150;
-	*/
+        for(var i=0; i < 8; i++) {
+            var spinner = spinners.create(game.world.centerX, game.world.centerY, 'spinner');
+            spinner.animations.add('spin');
+            spinner.animations.play('spin', 15, true);
+            spinner.checkWorldBounds = true;
+            game.physics.enable(spinner, Phaser.Physics.ARCADE);
+            spinner.body.collideWorldBounds = true;
+            spinner.body.bounce.set(1);
+            spinner.body.velocity.y = Math.floor((Math.random() * -300) + 300);
+            spinner.body.velocity.x = Math.floor((Math.random() * -300) + 300);
+        }
 
         lobbyText = game.add.text(game.world.centerX - 125, game.world.centerY, 'Waiting for Players', { font: "32px Arial", fill: "#ffffff", align: "center"});
 
         paddle1 = game.add.sprite(15, game.world.centerY, 'paddle1');
         paddle2 = game.add.sprite(game.width - 30, game.world.centerY, 'paddle2');
+
+        //socket.emit('init', {sHeight: game.height, pSize: paddle1.size});
 
         paddle1.visible = false;
         paddle2.visible = false;
@@ -171,7 +149,6 @@ gameState.prototype = {
         paddle1.body.y = player1Position;
         paddle2.body.y = player2Position;
 
-        
         // Move paddle1
         if(wKey.isDown) {
             paddle1.body.velocity.y = -250;
@@ -187,7 +164,7 @@ gameState.prototype = {
         else if(downKey.isDown) {
             paddle2.body.velocity.y = 250;
         }
-        
+
 
         // Keep paddle1 in bounds
         if(paddle1.y < 0) {
@@ -240,6 +217,30 @@ socket.on('onconnected', function(data) {
 });
 
 socket.on('update', function(data) {
+    // Keep Player 1 in-bounds
+    /*
+    if(data.p1Pos < 0) {
+        player1Position = 0;
+    }
+    else if(data.p1Pos > game.height - paddle1.height) {
+        player1Position = game.height - paddle1.height;
+    }
+    else {
+        player1Position = data.p1Pos;
+    }
+
+    // Keep Player 2 in-bounds
+    if(data.p2Pos < 0) {
+        player2Position = 0;
+    }
+    else if(data.p2Pos > game.height - paddle2.height) {
+        player2Position = game.height - paddle2.height;
+    }
+    else {
+        player2Position = data.p2Pos;
+    }
+    */
+
     player1Position = data.p1Pos;
     player2Position = data.p2Pos;
 });

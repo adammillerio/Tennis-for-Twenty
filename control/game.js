@@ -25,7 +25,7 @@ function create() {
     game.physics.enable(dial, Phaser.Physics.ARCADE);
 
     fullText = game.add.text(game.world.centerX - 200, game.world.centerY, 'Game full! Please refresh.', { font: "32px Arial", fill: "#ff0000", align: "center"});
-    disconnectedText = game.add.text(game.world.centerX - 200, game.world.centerY, 'Disconnected! Please refresh.', { font: "32px Arial", fill: "#ff0000", align: "center"}); 
+    disconnectedText = game.add.text(game.world.centerX - 200, game.world.centerY, 'Disconnected! Please refresh.', { font: "32px Arial", fill: "#ff0000", align: "center"});
 
     fullText.visible = false;
     disconnectedText.visible = false;
@@ -37,19 +37,14 @@ function update() {
         dial.rotation = game.physics.arcade.angleToPointer(dial);
         newRotation = dial.rotation * (180 / Math.PI);
 
-	deltaRotation = curRotation - newRotation;
+        deltaRotation = curRotation - newRotation;
 
         if(deltaRotation < -180)
             deltaRotation += 360;
         if(deltaRotation >= 180)
             deltaRotation -= 360;
 
-	disconnectedText.visible = false;
-
         socket.emit('updateposition', deltaRotation);
-    }
-    else {
-        
     }
 }
 
