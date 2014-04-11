@@ -1,6 +1,6 @@
 var game = new Phaser.Game(512, 512, Phaser.AUTO, 'game-div', {preload: preload, create: create, update: update});
 
-var socket = io.connect('http://192.168.1.3:8001');
+var socket = io.connect('http://192.168.1.4:8001');
 
 var dial;
 

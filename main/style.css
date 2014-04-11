@@ -1,11 +1,22 @@
+@font-face {
+    font-family: 'Computer Pixel 7 Regular';
+    src: url('assets/fonts/computer_pixel-7-webfont.eot');
+    src: url('assets/fonts/computer_pixel-7-webfont.eot?#iefix') format('embedded-opentype'),
+         url('assets/fonts/computer_pixel-7-webfont.woff') format('woff'),
+         url('assets/fonts/computer_pixel-7-webfont.ttf') format('truetype'),
+         url('assets/fonts/computer_pixel-7-webfont.svg#computer_pixel-7regular') format('svg');
+    font-weight: normal;
+    font-style: normal;
+}
+
 #game-div {
-  width: 1280px;
-  height: 720px;
-  margin: auto;
-  margin-top: 20px;
-  border:32px solid;
-  border-radius:25px;
-  border-color: #4A4A48;
+    width: 1280px;
+    height: 720px;
+    margin: auto;
+    margin-top: 20px;
+    border:32px solid;
+    border-radius:25px;
+    border-color: #4A4A48;
 }
 
 #title {

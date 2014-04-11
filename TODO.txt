@@ -1,0 +1,10 @@
+* Make paddles 2x larger
+* Title screen
+    - Title Graphic
+    - Small description of the programmer of 2020 and the idea of ubiquity
+    - Simple instructions on how to connect to the game
+* Switch game to retro aesthetic
+    - Text
+    - Paddles
+    - Ball
+* Add powerup system

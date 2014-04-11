@@ -1,6 +1,17 @@
 var game = new Phaser.Game(1280, 720, Phaser.AUTO, 'game-div', {preload: preload, create: create, update: update});
 
-var socket = io.connect('http://192.168.1.3:8001');
+WebFontConfig = {
+    //  'active' means all requested fonts have finished loading
+    //  We set a 1 second delay before calling 'createText'.
+    //  For some reason if we don't the browser cannot render the text the first time it's created.
+    //active: function() { game.time.events.add(Phaser.Timer.SECOND, createText, this); },
+    //  The Google Fonts we want to load (specify as many as you like in the array)
+    google: {
+      families: ['Press+Start+2P::latin']
+    }
+};
+
+var socket = io.connect('http://192.168.1.4:8001');
 
 var paddle1Score = 0;
 var paddle2Score = 0;
@@ -19,6 +30,8 @@ var scoreText;
 
 var curState;
 
+var keyboardMode = false;
+
 var wKey;
 var sKey;
 var upKey;
@@ -26,27 +39,48 @@ var downKey;
 var fKey;
 
 function preload() {
+    game.load.script('webfont', '//ajax.googleapis.com/ajax/libs/webfont/1.4.7/webfont.js');
     console.log('Loaded main assets');
 }
 
 function create() {
+    game.stage.backgroundColor = '#D6D29C';
+
     console.log('Registering lobby state');
     game.state.add('lobby', lobbyState);
 
     console.log('Registering main game state');
     game.state.add('game', gameState);
 
-    console.log('Starting lobby state');
-    curState = 'lobby';
-    game.state.start('lobby');
+    if(!keyboardMode) {
+        console.log('Starting lobby state');
+        curState = 'lobby';
+        game.state.start('lobby');
+    }
+    else {
+        console.log('Starting main game state');
+        curState = 'game';
+        game.state.start('game');
+    }
 }
 
 function update() {
 
 }
 
-var spinners;
+//var spinners;
+var lobbyBall;
 var lobbyText;
+
+var titleText1Complete = 'Programmer of 2020';
+var titleText1Counter = 0;
+var titleText1;
+
+var titleText2Complete = 'Tennis for Twenty';
+var titleText2Counter = 0;
+var titleText2;
+
+var timeToStart = 6;
 
 var lobbyState = function(game) {};
 
@@ -54,12 +88,19 @@ lobbyState.prototype = {
     preload: function() {
         game.load.image('paddle1', 'assets/paddles/paddle1.png');
         game.load.image('paddle2', 'assets/paddles/paddle2.png');
-        game.load.spritesheet('spinner', 'assets/spinner.png', 26, 26);
+        game.load.image('ball', 'assets/ball.png');
+        //game.load.spritesheet('spinner', 'assets/spinner.png', 26, 26);
     },
 
     create: function() {
         game.physics.startSystem(Phaser.Physics.ARCADE);
 
+        game.physics.arcade.checkCollision.left = false;
+        game.physics.arcade.checkCollision.right = false;
+
+        game.stage.backgroundColor = '#D6D29C';
+
+        /*
         spinners = game.add.group();
 
         for(var i=0; i < 8; i++) {
@@ -73,8 +114,30 @@ lobbyState.prototype = {
             spinner.body.velocity.y = Math.floor((Math.random() * -300) + 300);
             spinner.body.velocity.x = Math.floor((Math.random() * -300) + 300);
         }
+        */
 
-        lobbyText = game.add.text(game.world.centerX - 125, game.world.centerY, 'Waiting for Players', { font: "32px Arial", fill: "#ffffff", align: "center"});
+        lobbyText = game.add.text(game.world.centerX - 300, game.world.centerY, 'Waiting for Players');
+        lobbyText.font = 'Press Start 2P';
+        lobbyText.size = 45;
+        //lobbyText.anchor.setTo(0.5);
+        lobbyText.align = 'left';
+        lobbyText.fill = '#858049';
+        lobbyText.visible = false;
+
+        titleText1 = game.add.text(game.world.centerX - 290, 50, '');
+        titleText1.font = 'Press Start 2P';
+        titleText1.size = 45;
+        titleText1.align = 'left';
+        titleText1.fill = '#858049';
+
+        titleText2 = game.add.text(game.world.centerX - 285, 100, '');
+        titleText2.font = 'Press Start 2P';
+        titleText2.size = 45;
+        titleText2.align = 'left';
+        titleText2.fill = '#858049';
+
+        game.time.events.loop(Phaser.Timer.SECOND / 8, this.updateTitleText, this);
+        game.time.events.loop(Phaser.Timer.SECOND, this.updateWaitingText, this);
 
         paddle1 = game.add.sprite(15, game.world.centerY, 'paddle1');
         paddle2 = game.add.sprite(game.width - 30, game.world.centerY, 'paddle2');
@@ -88,28 +151,157 @@ lobbyState.prototype = {
         paddle1.body.bounce.set(1);
         paddle2.body.bounce.set(1);
 
+        paddle1.anchor.setTo(0.5);
+        paddle2.anchor.setTo(0.5);
+
         paddle1.body.immovable = true;
         paddle2.body.immovable = true;
 
-        //socket.emit('init', {sHeight: game.height, pSize: paddle1.size});
+        lobbyBall = game.add.sprite(game.world.centerX, game.world.centerY, 'ball');
+        lobbyBall.checkWorldBounds = true;
+        game.physics.enable(lobbyBall, Phaser.Physics.ARCADE);
+        lobbyBall.body.collideWorldBounds = true;
+        lobbyBall.body.bounce.set(1);
+        lobbyBall.body.velocity.y = -75;
+        lobbyBall.body.velocity.x = -300;
 
-        paddle1.visible = false;
-        paddle2.visible = false;
+        lobbyBall.events.onOutOfBounds.add(lobbyBallReset, this);
+
+        //socket.emit('init', {sHeight: game.height, pSize: paddle1.size});
     },
 
     update: function() {
-        paddle1.body.y = player1Position;
-        paddle2.body.y = player2Position;
+        if(!player1Connected) {
+            this.controlPaddle1();
+        }
+        else {
+            paddle1.body.y = player1Position;
+        }
 
-        game.physics.arcade.collide(spinners, paddle1, null, null, this);
-        game.physics.arcade.collide(spinners, paddle2, null, null, this);
+        if(!player2Connected) {
+            this.controlPaddle2();
+        }
+        else {
+            paddle2.body.y = player2Position;
+        }
+
+        game.physics.arcade.collide(lobbyBall, paddle1, null, null, this);
+        game.physics.arcade.collide(lobbyBall, paddle2, null, null, this);
 
         if(player1Connected == true && player2Connected == true) {
+            //game.time.events.loop(Phaser.Timer.SECOND, this.startGame, this);
             player1Position = 0;
             player2Position = 0;
+            lobbyText.visible = false;
+            titleText1.setText('');
+            titleText1Counter = 0;
+            titleText2.setText('');
+            titleText2Counter = 0;
             curState = 'game';
             game.state.start('game');
         }
+    }
+}
+
+lobbyState.prototype.updateWaitingText = function() {
+    /*
+    if(player1Connected && player2Connected)
+        return;
+    */
+
+    switch(lobbyText.text) {
+        case 'Waiting for Players':
+            lobbyText.setText('Waiting for Players.');
+            break;
+        case 'Waiting for Players.':
+            lobbyText.setText('Waiting for Players..');
+            break;
+        case 'Waiting for Players..':
+            lobbyText.setText('Waiting for Players...');
+            break;
+        case 'Waiting for Players...':
+            lobbyText.setText('Waiting for Players');
+            break;
+        default:
+            console.log('If you got here, then MultiVac was right');
+            break;
+    }
+}
+
+lobbyState.prototype.updateTitleText = function() {
+    if(titleText1Counter <= titleText1Complete.length) {
+        titleText1.setText(titleText1Complete.substring(0, titleText1Counter));
+        ++titleText1Counter;
+    }
+    else if(titleText2Counter <= titleText2Complete.length) {
+        titleText2.setText(titleText2Complete.substring(0, titleText2Counter));
+        ++titleText2Counter;
+    }
+    else if(!lobbyText.visible) {
+        lobbyText.visible = true;
+    }
+    else if(titleText2.text == titleText2Complete) {
+        titleText2.setText(titleText2Complete + '|');
+    }
+    else if(titleText2.text == titleText2Complete + '|') {
+        titleText2.setText(titleText2Complete);
+    }
+}
+
+lobbyState.prototype.controlPaddle1 = function() {
+    if(paddle1.body.y - lobbyBall.body.y < -5) {
+        paddle1.body.velocity.y = 250;
+    }
+    else if(paddle1.body.y - lobbyBall.body.y > 5) {
+        paddle1.body.velocity.y = -250;
+    }
+    else {
+        paddle1.body.velocity.y = 0;
+    }
+}
+
+lobbyState.prototype.controlPaddle2 = function() {
+    if(paddle2.body.y - lobbyBall.body.y < -5) {
+        paddle2.body.velocity.y = 250;
+    }
+    else if(paddle2.body.y - lobbyBall.body.y > 5) {
+        paddle2.body.velocity.y = -250;
+    }
+    else {
+        paddle2.body.velocity.y = 0;
+    }
+}
+
+/*
+lobbyState.prototype.startGame = function() {
+    --timeToStart;
+
+    lobbyText.setText(timeToStart.toString());
+
+    if(timeToStart == 0) {
+        player1Position = 0;
+        player2Position = 0;
+        lobbyText.visible = false;
+        titleText1.setText('');
+        titleText1Counter = 0;
+        titleText2.setText('');
+        titleText2Counter = 0;
+        curState = 'game';
+        game.state.start('game');
+    }
+}
+*/
+
+function lobbyBallReset() {
+    lobbyBall.reset(game.world.centerX, game.world.centerY);
+
+    if((Math.floor(Math.random() * 2) + 1) == 1) {
+        lobbyBall.body.velocity.y = -75;
+        lobbyBall.body.velocity.x = -300;
+    }
+    else {
+        lobbyBall.body.velocity.y = 75;
+        lobbyBall.body.velocity.x = 300;
     }
 }
 
@@ -162,7 +354,11 @@ gameState.prototype = {
         upKey = game.input.keyboard.addKey(Phaser.Keyboard.UP);
         downKey = game.input.keyboard.addKey(Phaser.Keyboard.DOWN);
 
-        scoreText = game.add.text(game.world.centerX - 15, 5, '0 : 0', { font: "32px Arial", fill: "#ffffff", align: "center"});
+        scoreText = game.add.text(game.world.centerX, 50, '0 : 0');
+        scoreText.font = 'Press Start 2P';
+        scoreText.fill = '#858049';
+        scoreText.align = 'center';
+        scoreText.anchor.setTo(0.5);
     },
 
     update: function() {
@@ -170,8 +366,10 @@ gameState.prototype = {
         //paddle1.body.velocity.setTo(0, 0);
         //paddle2.body.velocity.setTo(0, 0);
 
-        paddle1.body.y = player1Position;
-        paddle2.body.y = player2Position;
+        if(!keyboardMode) {
+            paddle1.body.y = player1Position;
+            paddle2.body.y = player2Position;
+        }
 
         // Move paddle1
         if(wKey.isDown) {
@@ -180,6 +378,9 @@ gameState.prototype = {
         else if(sKey.isDown) {
             paddle1.body.velocity.y = 250;
         }
+        else if(!wKey.isDown && !sKey.isDown) {
+            paddle1.body.velocity.y = 0;
+        }
 
         // Move paddle2
         if(upKey.isDown) {
@@ -187,6 +388,9 @@ gameState.prototype = {
         }
         else if(downKey.isDown) {
             paddle2.body.velocity.y = 250;
+        }
+        else if(!upKey.isDown && !downKey.isDown) {
+            paddle2.body.velocity.y = 0;
         }
 
 
@@ -220,18 +424,42 @@ function ballLost() {
         paddle2Score++;
     }
 
-    scoreText.text = paddle1Score.toString() + ' : ' + paddle2Score.toString();
-
-    ball.reset(game.world.centerX, game.world.centerY);
-
-    // Randomize starting direction
-    if((Math.floor(Math.random() * 2) + 1) == 1) {
-        ball.body.velocity.y = -75;
-        ball.body.velocity.x = -300;
+    if(paddle1Score == 10) {
+        scoreText.setText('Player 1 Wins!')
+        game.time.events.add(Phaser.Timer.SECOND * 10, resetGame, this);
+    }
+    else if(paddle2Score == 10) {
+        scoreText.setText('Player 2 Wins!');
+        game.time.events.add(Phaser.Timer.SECOND * 10, resetGame, this);
     }
     else {
-        ball.body.velocity.y = 75;
-        ball.body.velocity.x = 300;
+        scoreText.setText(paddle1Score.toString() + ' : ' + paddle2Score.toString());
+
+        ball.reset(game.world.centerX, game.world.centerY);
+
+        // Randomize starting direction
+        if((Math.floor(Math.random() * 2) + 1) == 1) {
+            ball.body.velocity.y = -75;
+            ball.body.velocity.x = -300;
+        }
+        else {
+            ball.body.velocity.y = 75;
+            ball.body.velocity.x = 300;
+        }
+    }
+}
+
+function resetGame() {
+    paddle1.visible = false;
+    paddle2.visible = false;
+    player1Connected = false;
+    player2Connected = false;
+    paddle1Score = 0;
+    paddle2Score = 0;
+
+    if(curState != 'lobby') {
+        curState = 'lobby';
+        game.state.start('lobby');
     }
 }
 
@@ -280,15 +508,5 @@ socket.on('p2connected', function() {
 });
 
 socket.on('playerdisconnected', function() {
-    paddle1.visible = false;
-    paddle2.visible = false;
-    player1Connected = false;
-    player2Connected = false;
-    paddle1Score = 0;
-    paddle2Score = 0;
-
-    if(curState != 'lobby') {
-        curState = 'lobby';
-        game.state.start('lobby');
-    }
+    resetGame();
 });
